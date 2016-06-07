@@ -22,6 +22,9 @@ module DataMapper
       # Specifies whether to demodulize class names.
       attr_accessor :full_names
 
+      # Specifies whether to demodulize property class names.
+      attr_accessor :full_property_names
+
       #
       # Initializes a new visualization.
       #
@@ -41,11 +44,15 @@ module DataMapper
       # @option options [Boolean] :full_names
       #   Specifies whether to demodulize class names.
       #
+      # @option options [Boolean] :full_property_names
+      #   Specifies whether to demodulize property class names.
+      #
       def initialize(options={})
         @project = Project.new(options)
 
         @naming     = :relational
         @full_names = false
+        @full_property_names = false
 
         @repository_names = {}
 
@@ -65,6 +72,10 @@ module DataMapper
 
         if options.has_key?(:full_names)
           @full_names  = options[:full_names]
+        end
+
+        if options.has_key?(:full_property_names)
+          @full_names  = options[:full_property_names]
         end
       end
 
@@ -130,7 +141,9 @@ module DataMapper
         if @naming == :schema
           class_name(property.dump_class)
         else
-          class_name(property.class)
+          name = class_name(property.class)
+          name = DataMapper::Inflector.demodulize(name) unless @full_property_names
+          name
         end
       end
 
