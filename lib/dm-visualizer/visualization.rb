@@ -172,13 +172,13 @@ module DataMapper
       def model_name(model)
         if @naming == :schema
           name         = model_repository_name(model)
-          storage_name = model.storage_names[:default]
+          storage_name = model.storage_name
           storage_name ||= NamingConventions::Resource::UnderscoredAndPluralized.call(model.name)
 
           if name
-            "#{name}.#{storage_name}"
+            "#{name}.#{storage_name} [#{model.name}]"
           else
-            storage_name
+            "#{storage_name} [#{model.name}]"
           end
         else
           class_name(model)
