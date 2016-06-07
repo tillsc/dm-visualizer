@@ -75,7 +75,8 @@ module DataMapper
                       GraphViz.new(@options.merge(
                         :naming => type,
                         :file   => "doc/#{type}_diagram",
-                        :format => format
+                        :format => format,
+                        :ignore => ENV['IGNORE'].to_s.split(",").map(&:strip)
                       )).visualize!
                     end
                   end

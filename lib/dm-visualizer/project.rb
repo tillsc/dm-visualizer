@@ -163,7 +163,7 @@ module DataMapper
 
       #
       # Enumerates over each DataMapper Model loaded from the project.
-      
+
       # @yield [model]
       #   The given block will be passed every model registered with
       #   DataMapper.
@@ -199,10 +199,8 @@ module DataMapper
         return enum_for(__method__) unless block_given?
 
         each_model do |model|
-          direct_ancestor = model.ancestors[1]
-
-          if direct_ancestor.class == Class
-            yield model, direct_ancestor
+          if model.superclass.is_a?(DataMapper::Model)
+            yield model, model.superclass
           end
         end
       end
@@ -266,9 +264,12 @@ module DataMapper
         each_foreign_key(model) do |name,parent_model|
           foreign_keys << name
         end
-        
+
         model.properties.each do |property|
-          yield property unless foreign_keys.include?(property.name)
+          # Ignore relationships already defined in superclass
+          unless model.superclass.is_a?(DataMapper::Model) && model.superclass.properties[property.name]
+            yield property unless foreign_keys.include?(property.name)
+          end
         end
       end
 
@@ -293,7 +294,10 @@ module DataMapper
 
         each_model do |model|
           each_relationship_for(model) do |relationship|
-            yield relationship, model
+            # Ignore relationships already defined in superclass
+            unless model.superclass.is_a?(DataMapper::Model) && model.superclass.relationships[relationship.name]
+              yield relationship, model
+            end
           end
         end
       end

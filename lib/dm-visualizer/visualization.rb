@@ -127,7 +127,11 @@ module DataMapper
       #   The property type name.
       #
       def property_type_name(property)
-        class_name(property.class)
+        if @naming == :schema
+          class_name(property.dump_class)
+        else
+          class_name(property.class)
+        end
       end
 
       #

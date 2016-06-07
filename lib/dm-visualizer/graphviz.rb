@@ -22,6 +22,9 @@ module DataMapper
       # The output file format (`:svg`)
       attr_accessor :format
 
+      # The names of the models to ignore
+      attr_accessor :ignore
+
       # The colors to use
       attr_reader :colors
 
@@ -40,6 +43,9 @@ module DataMapper
       # @option options [Symbol] :format (:svg)
       #   The format of the generated graph.
       #
+      # @option options [Array] :ignore ([])
+      #   The names of the models to ignore.
+      #
       # @option options [Hash] :colors
       #   The colors to use for `:one_to_many` and `:one_to_one`
       #   relationship edges.
@@ -52,6 +58,8 @@ module DataMapper
         super(options)
 
         @format = :svg
+
+        @ignore = []
 
         @colors = {
           :one_to_many => 'blue',
@@ -69,6 +77,10 @@ module DataMapper
 
         if options[:format]
           @format = options[:format].to_sym
+        end
+
+        if options[:ignore]
+          @ignore = Array(options[:ignore])
         end
 
         if options[:colors]
@@ -107,16 +119,13 @@ module DataMapper
 
         # Create node for each model
         project.each_model do |model|
+          next if ignore.include?(model.name)
+
           properties = project.each_property(model).map do |property|
             "#{property_name(property)}: #{property_type_name(property)}"
           end
 
-          foreign_keys = project.each_foreign_key(model).map do |key,value|
-            "#{foreign_key_name(key)}: #{model_name(value)}"
-          end
-
-          columns = (properties + foreign_keys)
-          label = "{ #{model_name(model)} | #{columns.join("\n")} }"
+          label = "{ #{model_name(model)} | #{properties.join("\n")} }"
 
           graph.add_nodes(
             model_name(model),
@@ -127,6 +136,8 @@ module DataMapper
 
         # Connect model nodes together by relationship
         project.each_relationship do |relationship,model|
+          next if ignore.include?(relationship.target_model.name)
+
           source_node = graph.get_node(model_name(model))
           target_node = graph.get_node(model_name(relationship.target_model))
 
@@ -136,20 +147,22 @@ module DataMapper
               source_node,
               target_node,
               :color => @colors[:one_to_many],
-              :label => " #{@labels[:one_to_many]}"
+              :label => "#{foreign_key_name(relationship.name)}\n#{@labels[:one_to_many]}"
             )
           when DataMapper::Associations::OneToOne::Relationship
             graph.add_edges(
               source_node,
               target_node,
               :color => @colors[:one_to_one],
-              :label => " #{@labels[:one_to_one]}"
+              :label => "#{foreign_key_name(relationship.name)}\n#{@labels[:one_to_one]}"
             )
           end
         end
 
         # Connect model nodes by inheritence
         project.each_model_inheritence do |model,ancestor|
+          next if ignore.include?(ancestor.name)
+
           source_node = graph.get_node(model_name(ancestor))
           target_node = graph.get_node(model_name(model))
 
